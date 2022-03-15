@@ -1,0 +1,104 @@
+#Q1
+
+try:
+    metrix = []
+    for row in range(4):
+        metrix.append([])
+        enter = input("Enter a 4-by-4 matrix row "+str(row)+" :")
+        new_entry=enter.split()
+        for i in new_entry:
+            metrix[row].append(float(i))
+
+
+    def major_diagonal(lst, row, col):
+        if row <= 3:
+            return lst[row][col] + major_diagonal(lst, row + 1, col + 1)
+        if row > 3:
+            return 0
+
+
+    def minor_diagonal(lst, row, col):
+        if row <= 3:
+            return lst[row][col + 3] + minor_diagonal(lst, row + 1, col - 1)
+        if row > 3:
+            return 0
+
+
+    for line in metrix:
+        print(*line)
+
+    print("Sum of the elements in the major diagonal is " + str(major_diagonal(metrix, 0, 0)))
+    print("Sum of the elements in the minor diagonal is " + str(minor_diagonal(metrix, 0, 0)))
+
+except:
+    print("Numbers only!")
+#
+# def major_diagonal(lst,row,col):
+#     if row <=3:
+#         return lst[row][col]+major_diagonal(lst,row+1,col+1)
+#     if row>3:
+#         return 0
+#
+# def minor_diagonal(lst,row,col):
+#     if row<=3:
+#         return lst[row][col+3]+minor_diagonal(lst,row+1,col-1)
+#     if row>3:
+#         return 0
+#
+#
+# for line in metrix:
+#     print(*line)
+#
+#
+# print("Sum of the elements in the major diagonal is "+str(major_diagonal(metrix,0,0)))
+# print("Sum of the elements in the minor diagonal is "+str(minor_diagonal(metrix,0,0)))
+
+
+#Q2
+# def fibonacci(n):
+#     fib = [0,1]
+#     k = 0
+#     while len(fib) < n:
+#         fib.append(fib[k]+fib[k+1])
+#         k+=1
+#     if len(fib) == n:
+#         return fib
+#
+#
+#
+# def findIndexOfFibonacciNumber(lst,n):
+#     if n <= lst[-1]:
+#         low = 0
+#         high = len(lst) - 1
+#         while high >= low:
+#             mid = (low + high) // 2
+#             if n < lst[mid]:
+#                 high = mid -1
+#             elif n == lst[mid]:
+#                 return mid
+#             else:low = mid +1
+#         return -1
+#     else:
+#         while lst[-1] < n:
+#             lst.append(lst[-1] + lst[-2])
+#             return findIndexOfFibonacciNumber(lst,n)
+#
+# f= fibonacci(20)
+# print("The first ", len(f), " fibonacci numbers\n", f)
+# print("The index of 21 is: ", \
+#       findIndexOfFibonacciNumber(f, 21),
+#       " size of list: ", len(f))
+# print("The index of 63245986 is: ",
+#       findIndexOfFibonacciNumber(f, 63245986),
+#       " size of list: ", len(f))
+# print("The index of 14472334024676221 is: ",
+#       findIndexOfFibonacciNumber(f, 14472334024676221),
+#       " size of list: ", len(f))
+#
+# print("The index of 0 is: ",
+#          findIndexOfFibonacciNumber(f, 0),
+#          " size of list: ", len(f))
+# print("The index of 1000000 is: ",
+#          findIndexOfFibonacciNumber(f, 1000000),
+#          " size of list: ", len(f))
+
