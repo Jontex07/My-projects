@@ -1,0 +1,31 @@
+
+def main():
+    for i in range(1,11):
+        print("n= "+str(i)+" sun=",recursion(i))
+
+
+def recursion(n):
+    if n <=1 :
+        return n
+    else:
+        return 1/n + recursion(n-1)
+
+main()
+
+#Q2
+def main():
+    print(powerRecursice(3,2))
+    print(powerRecursice(0,8))
+    print(powerRecursice(1,10))
+
+def powerRecursice(n,x):
+    if n == 1:
+        return x
+    if n == 0:
+        return 1
+    return x*powerRecursice(n-1,x)
+
+
+main()
+
+
