@@ -1,0 +1,98 @@
+import random
+metrix = []
+rows = random.randint(1,5)
+culs = random.randint(1,5)
+for row in range(0,rows):
+    metrix.append([])
+    for cul in range(0,culs):
+        num = random.randint(-100,100)
+        metrix[row].append(num)
+
+for row in metrix:
+    print(row)
+
+print("-------")
+
+
+
+def insertionSort(lst):
+    for i in range(len(lst)):
+        for j in range(len(lst[0])):
+            current_val = lst[i][j]
+            if j ==0 and i > 0:
+                k = len(lst[0]) - 1
+                t = i - 1
+            elif j == 0 and i == 0:
+                k = j
+                t = i
+            else:
+                k = j - 1
+                t = i
+            while k >= 0 and t >= 0 and lst[t][k] > current_val:
+                if k+1 == len(lst[0]):
+                    lst[t+1][0] = lst[t][k]
+                else:
+                    lst[t][k+1] = lst[t][k]
+                k-= 1
+                if k < 0 :
+                    t-= 1
+                    if t >= 0:
+                        k = len(lst[0]) - 1
+                    else:
+                        t += 1
+            if k == len(lst[0])-1:
+                k = -1
+                lst[t+1][k+1] = current_val
+            elif t < 0:
+                lst[t + 1][k + 1] = current_val
+            else:
+                if i == 0 and j == 0:
+                    t = i
+                    k = -1
+                lst[t][k + 1] = current_val
+
+insertionSort(metrix)
+for row in metrix:
+    print(row)
+
+# def check_order(word,lst):
+#     status = "not in ant order"
+#     if len(lst) == 0:
+#         status = "ascending"
+#         return status
+#     if word == "ascending":
+#         for i in range(1,len(lst)):
+#             if lst[i-1] > lst[i]:
+#                 return status
+#         status = "ascending"
+#
+#     if word == "descending":
+#         for i in range(1,len(lst)):
+#             if lst[i-1] < lst[i]:
+#                 return status
+#         status = "descending"
+#     return status
+#
+# def main():
+#     try:
+#         list_of_numbers = []
+#         numbers = input("Enter numbers: ")
+#         new_numbers = numbers.split()
+#         for num in new_numbers:
+#             list_of_numbers.append(float(num))
+#         print(list_of_numbers)
+#
+#         x = check_order("ascending",list_of_numbers)
+#         if x == "ascending" :
+#             print("The numbers in the list are in ascending order")
+#         else:
+#             x = check_order("descending", list_of_numbers)
+#             if x == "descending":
+#                 print("The numbers in the list are in descending order")
+#             else:
+#                 if x == "not in ant order":
+#                     print("The numbers in the list are not in any order")
+#
+#     except:
+#         print("numbers only!")
+# main()
