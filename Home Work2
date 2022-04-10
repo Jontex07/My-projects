@@ -102,3 +102,41 @@ except:
 #          findIndexOfFibonacciNumber(f, 1000000),
 #          " size of list: ", len(f))
 
+
+#Q3
+
+s1 = input("Enter a string s1:")
+s2 = input("Enter a string s2:")
+
+def sub_string(s1,s2):
+    for i in range(0,len(s1)):
+        for j in range(0,len(s2)):
+
+            if len(s2) > len(s1):
+                return print("cant be matched")
+
+            if s2 == None:
+                return 0
+
+            i2 = 0
+            j2 = 0
+            count = 0
+            if i2 < len(s1)-1:
+                return "no match"
+            while count < len(s2):
+                if s1[i2] == s2[j2]:
+                    i2 += 1
+                    j2 += 1
+                    count += 1
+                else:
+                    count = 0
+                    j2 = 0
+                    i2 += 1
+            return i2 - len(s2)
+
+
+
+index1 = sub_string(s1,s2)
+
+print("s1: "+s1+" s2: "+s2+" strings are matched at index: "+str(index1))
+# print(type(ord(s1[2])))
