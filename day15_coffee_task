@@ -1,0 +1,50 @@
+class Coffee:
+    def __init__(self):
+        self.water = 300
+        self.milk = 200
+        self.coffee = 100
+        self.money = 5
+
+    def add_water(self, amount=int):
+        self.water += amount
+
+    def add_milk(self, amount=int):
+        self.milk += amount
+
+    def add_coffee(self, amount=int):
+        self.coffee += amount
+
+    def add_money(self, penny=0, nickel=0, dime=0, quarter=0):
+        self.money += penny*0.01 + nickel*0.05 + dime*0.1 + quarter*0.25
+
+    def espresso(self):
+        if self.water >= 50:
+            self.water -= 50
+        else:
+            return "missing water you only have "+str(self.water)+" left"
+        if self.coffee >= 18:
+            self.coffee -= 18
+        else:
+            return "missing coffee you only have "+str(self.coffee)+" left"
+        if self.money >= 1.5:
+            self.money -= 1.5
+        else:
+            return "missing money you only have "+str(self.money)+" left"
+        return True
+
+    def latte(self):
+        pass
+
+    def __str__(self):
+        back = "Report:\n"\
+            "water: "+str(self.water)+"\nmilk: "\
+               +str(self.milk)+"\n"\
+                "coffee: "+str(self.coffee)+\
+               "\nmoney: "+str(self.money)
+        return back
+    def __repr__(self):
+        return str(self)
+
+a = Coffee()
+a.add_money(12,12,12,12)
+print(a)
