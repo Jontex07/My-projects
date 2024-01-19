@@ -1,0 +1,362 @@
+import pandas as pd             # Automatically approved to use
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.set_style("whitegrid")            # Automatically approved to use
+from google.colab import files  # Will be approve if requested
+from scipy.spatial.distance import jaccard
+
+
+Movies_database = pd.read_csv("movies_metadata.csv", encoding="latin-1")
+
+Movies_database['belongs_to_collection'].replace('[]', np.NaN, inplace=True)
+Movies_database['genres'].replace( '[]', np.NaN, inplace=True)
+#marging all the no overview into one option
+Movies_database['overview'].replace( 'No Overview', 'No overview found.', inplace=True)
+Movies_database['overview'].replace( ' ', 'No overview found.', inplace=True)
+Movies_database['overview'].replace( 'No movie overview available.', 'No overview found.', inplace=True)
+#marging all the 0 into one option
+Movies_database['popularity'].replace( 0.0,0, inplace=True)
+Movies_database['popularity'].replace( '0',0, inplace=True)
+# replace values '[]' in production_companies variable with `NaN`
+Movies_database['production_companies'].replace( '[]', np.NaN, inplace=True)
+# replace values '[]' in production_countries variable with `NaN`
+Movies_database['production_countries'].replace( '[]', np.NaN, inplace=True)
+
+# replace values '[]' in spoken_languages variable with `NaN`
+Movies_database['spoken_languages'].replace( '[]', np.NaN, inplace=True)
+
+# replace values '-' in tagline variable with `NaN`
+Movies_database['tagline'].replace( '-', np.NaN, inplace=True)
+
+# Convert non-numeric values in 'budget' column to NaN
+Movies_database['budget'] = pd.to_numeric(Movies_database['budget'], errors='coerce')
+
+# Convert non-numeric values in 'overview' column to NaN
+Movies_database['popularity'] = pd.to_numeric(Movies_database['popularity'], errors='coerce')
+Movies_database['movieid'] = pd.to_numeric(Movies_database['movieid'], errors='coerce')
+
+# Calculate the correlation matrix for all numeric columns
+correlation_matrix = Movies_database.corr()
+
+# Create a heatmap to visualize the correlations
+plt.figure(figsize=(8, 6))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', linewidths=0.5)
+plt.title('Correlation Matrix Heatmap')
+plt.show()
+
+ratings_database = pd.read_csv('ratings_small.csv')
+
+ratings_database.dtypes
+
+# Drop the 'timestamp' column
+ratings_database = ratings_database.drop(columns=['timestamp'])
+
+# Display the first few rows of the DataFrame to verify the change
+ratings_database.head()
+
+# Merge the DataFrames based on 'movieId' and 'id'
+merged_database = ratings_database.merge(Movies_database[['movieid', 'genres', 'title']], how='left', left_on='movieId', right_on='movieid')
+
+# Drop the 'id' column from the merged database
+merged_database.drop(columns=['movieid'], inplace=True)
+
+# Display the first few rows of the merged database
+merged_database.head()
+
+# Drop rows with NaN values by creating a copy of the DF
+cleaned_database = merged_database.dropna()
+
+# Convert the string representations of lists of dictionaries to actual lists
+cleaned_database['genres'] = cleaned_database['genres'].apply(lambda x: eval(x))
+
+# Extract genre names from the list of dictionaries
+def extract_genre_names(genre_list):
+    return [genre['name'] for genre in genre_list]
+
+# Apply the function to create a new "genres" column with genre names
+cleaned_database['genres'] = cleaned_database['genres'].apply(lambda x: extract_genre_names(x))
+
+# Convert the "genres" column to strings
+cleaned_database['genres'] = cleaned_database['genres'].astype(str)
+
+# Split the 'genres' column into separate columns
+split_genres = cleaned_database['genres'].str.strip('[]').str.replace("'", "").str.split(', ', expand=True)
+
+# Create 'gen1', 'gen2', and 'gen3' columns
+cleaned_database['gen1'] = split_genres[0]
+cleaned_database['gen2'] = split_genres[1]
+cleaned_database['gen3'] = split_genres[2]
+
+
+cleaned_database.head()
+
+cleaned_database = cleaned_database.drop(columns=['genres'])
+
+
+cleaned_database
+
+# Selecting user 7 as our test user
+user_7_database = cleaned_database[cleaned_database['userId']==7]
+
+cleaned_database.to_csv("cleaned_database.csv", index=False)
+
+user_7_database.to_csv("user_7_database.csv", index=False)
+
+# Set a random seed for reproducibility
+np.random.seed(61)
+
+# Create a boolean mask for selecting rows for the test set
+test_mask = np.random.rand(len(user_7_database)) <= 0.3  # 30% for the test set
+
+# Use the mask to split the data into training and test sets
+train_data = user_7_database[~test_mask]
+test_data = user_7_database[test_mask]
+
+
+test_data.to_csv("test_data.csv")
+
+test_data
+
+# Create a list of all genres user 7 likes
+user_7_genres = train_data[['gen1', 'gen2', 'gen3']].values.flatten()
+user_7_genres = [genre for genre in user_7_genres if pd.notnull(genre)]
+
+# Count the occurrences of each genre
+genre_counts = pd.Series(user_7_genres).value_counts()
+
+# Get the top 3 most liked genres
+top_3_genres = genre_counts.head(3)
+
+top_3_genres
+
+# Save each genre as a separate variable
+genre1 = top_3_genres.index[0]
+genre2 = top_3_genres.index[1]
+genre3 = top_3_genres.index[2]
+top_geners = [genre1, genre2, genre3]
+
+cleaned_database_without_user_7 = cleaned_database[cleaned_database['userId'] != 7]
+
+# Concatenate train_data with cleaned_database_without_user_7
+combined_data_train = pd.concat([cleaned_database_without_user_7, train_data], ignore_index=True)
+
+combined_data_train
+
+# New Section
+# **similarity matrix between users based on the ratings they gave to movies they both saw, you can follow these steps:**
+
+combined_data_train['rating'] = combined_data_train['rating'].astype(int)
+
+combined_data_train
+
+# Pivot the data to create a user-movie matrix
+user_movie_matrix = combined_data_train.pivot_table(index='userId', columns='movieId', values='rating')
+# Fill missing values with 0 (unrated movies)
+user_movie_matrix = user_movie_matrix.fillna(0)
+
+# Calculate Pearson correlation coefficient between two users
+def pearson_corr(user1_ratings, user2_ratings):
+    common_ratings = (user1_ratings != 0) & (user2_ratings != 0)
+    if not common_ratings.any():
+        return 0
+    user1_common_ratings = user1_ratings[common_ratings]
+    user2_common_ratings = user2_ratings[common_ratings]
+    return user1_common_ratings.corr(user2_common_ratings)
+
+# Calculate similarity matrix between users
+user_similarity_matrix = pd.DataFrame(index=user_movie_matrix.index, columns=user_movie_matrix.index)
+
+for user1 in user_movie_matrix.index:
+    for user2 in user_movie_matrix.index:
+        user1_ratings = user_movie_matrix.loc[user1]
+        user2_ratings = user_movie_matrix.loc[user2]
+        similarity = pearson_corr(user1_ratings, user2_ratings)
+        user_similarity_matrix.loc[user1, user2] = similarity
+
+# Display the user similarity matrix
+print(user_similarity_matrix)
+
+user_7_similarity = pd.read_csv('user_7_similarity.csv')
+
+user_7_similarity = user_similarity_matrix.loc[7]
+
+user_7_similarity.to_csv("user_7_similarity.csv")
+
+similar_users_above_0_6 = user_7_similarity[user_7_similarity > 0.6]
+
+similar_users_above_0_6
+
+similar_users_similarity = similar_users_above_0_6.rename_axis('userId').reset_index(name='similarity')
+
+similar_users_similarity
+
+similar_user_ids = similar_users_similarity['userId'].tolist()
+
+similar_users_data = combined_data_train[combined_data_train['userId'].isin(similar_user_ids)]
+similar_users_data = pd.merge(similar_users_data, similar_users_similarity, on='userId')
+
+similar_users_data =similar_users_data[similar_users_data['userId'] != 7]
+
+similar_users_data['similarity'] = similar_users_data['similarity'].astype(float)
+
+def convert_genres(genre):
+    if genre in top_geners:
+        return 1
+    else:
+        return 0
+
+# Apply the function to the 'gen1' column of the 'new_movies' DataFrame
+similar_users_data['gen1'] = similar_users_data['gen1'].apply(convert_genres)
+
+# Apply the function to the 'gen2' column of the 'new_movies' DataFrame
+similar_users_data['gen2'] = similar_users_data['gen2'].apply(convert_genres)
+
+# Apply the function to the 'gen3' column of the 'new_movies' DataFrame
+similar_users_data['gen3'] = similar_users_data['gen3'].apply(convert_genres)
+
+
+similar_users_data.dtypes
+
+similar_users_data['weighted_similarity'] = similar_users_data['similarity'] * similar_users_data['gen1'] + similar_users_data['similarity'] * similar_users_data['gen2'] + similar_users_data['similarity'] * similar_users_data['gen3']
+
+similar_users_data
+
+# Merge user 7's ratings from train_data into similar_users_data
+user7_ratings = train_data[train_data['userId'] == 7][['movieId', 'rating']]
+similar_users_data = pd.merge(similar_users_data, user7_ratings, on='movieId', how='left')
+
+# Rename the 'rating' column from train_data as 'user7_rating'
+similar_users_data = similar_users_data.rename(columns={'rating_x': 'rating', 'rating_y': 'user7_rating'})
+
+
+similar_users_data
+
+user_7_rated_movies = train_data['movieId'].tolist()
+
+#leave on only movies that user 7 watched
+similar_users_data_filtered = similar_users_data[similar_users_data['movieId'].isin(user_7_rated_movies)]
+
+similar_users_data_filtered
+
+#The variables according to which we predict
+X_regression = similar_users_data_filtered[['rating', 'gen1', 'gen2','gen3', 'similarity', 'weighted_similarity']]
+#The variable we want to predict
+y_regression = similar_users_data_filtered['user7_rating']
+
+# Set a random seed for reproducibility
+np.random.seed(51)
+
+# Determine the size of the test set (e.g., 30%)
+test_size = int(0.3 * len(X_regression))
+
+# Generate random indices for the test set
+test_indices = np.random.choice(X_regression.index, size=test_size, replace=False)
+
+# Create training and test sets based on the random indices
+X_train_regression = X_regression.drop(index=test_indices)
+y_train_regression = y_regression.drop(index=test_indices)
+
+X_test_regression = X_regression.loc[test_indices]
+y_test_regression = y_regression.loc[test_indices]
+
+# Add a column of ones to the feature matrix for the bias term
+X_train_regression = np.column_stack((np.ones(len(X_train_regression)), X_train_regression))
+
+# Calculate the weights using the normal equation
+weights = np.linalg.inv(X_train_regression.T @ X_train_regression) @ X_train_regression.T @ y_train_regression
+
+# Now you can use these weights to make predictions on the test set
+# Assuming you have your feature matrix X_test_regression
+
+# Add a column of ones to the test feature matrix
+X_test_regression = np.column_stack((np.ones(len(X_test_regression)), X_test_regression))
+
+# Predict the target values
+y_pred_regression = X_test_regression @ weights
+
+rmse = np.sqrt(((y_pred_regression - y_test_regression) ** 2).mean())
+mae = np.abs(y_pred_regression - y_test_regression).mean()
+
+print(f"RMSE: {rmse}")
+print(f"MAE: {mae}")
+
+test_data_without_ratings = test_data.copy()
+test_data_without_ratings.drop(columns=['rating'], inplace=True)
+
+new_movies = test_data_without_ratings
+
+
+new_movies
+
+def convert_genres(genre):
+    if genre in top_geners:
+        return 1
+    else:
+        return 0
+
+# Apply the function to the 'gen1' column of the 'new_movies' DataFrame
+new_movies['gen1'] = new_movies['gen1'].apply(convert_genres)
+
+# Apply the function to the 'gen2' column of the 'new_movies' DataFrame
+new_movies['gen2'] = new_movies['gen2'].apply(convert_genres)
+
+# Apply the function to the 'gen3' column of the 'new_movies' DataFrame
+new_movies['gen3'] = new_movies['gen3'].apply(convert_genres)
+
+average_ratings = []  # Step 1: Create an empty list
+average_similarities = []  # Step 1: Create an empty list
+for movie in new_movies.itertuples():
+    movie_id = movie.movieId
+
+    # Create a new DataFrame for users who have seen the current movie
+    movie_users = similar_users_data[similar_users_data['movieId'] == movie_id]
+    sorted_data_similar = movie_users.sort_values(by='similarity', ascending=False)
+    sorted_data_weighted_similarity = movie_users.sort_values(by='weighted_similarity', ascending=False)
+    top_20_ratings = sorted_data_similar['rating']
+    top_20_similar = sorted_data_similar['similarity']
+    top_20_weighted_similarity = sorted_data_similar.head(10)['weighted_similarity']
+    average_rating = top_20_ratings.mean()
+    average_ratings.append(average_rating)
+    average_similar = top_20_similar.mean()
+    average_similarities.append(average_similar)
+    average_weighted_similarity = top_20_weighted_similarity.mean()
+
+
+new_movies['rating'] = average_ratings
+new_movies['similarity'] = average_similarities
+
+
+
+
+new_movies['weighted_similarity'] = ((new_movies['similarity'] * new_movies['gen1'] +
+                                             new_movies['similarity'] * new_movies['gen2'] +
+                                             new_movies['similarity'] * new_movies['gen3'])  )
+
+new_movies
+
+# Extract relevant features from new_movies DataFrame
+X_new_movies = new_movies[['rating', 'gen1', 'gen2','gen3', 'similarity', 'weighted_similarity']]
+
+# Add a column of ones to the feature matrix
+X_new_movies = np.hstack((np.ones((X_new_movies.shape[0], 1)), X_new_movies))
+
+# Make predictions
+y_pred_new_movies = X_new_movies @ weights
+new_movies['Predicted Rating'] = y_pred_new_movies
+
+# Merge test_data with grouped_data to update user7_rating
+new_movies = new_movies.merge(test_data[['movieId', 'rating']], on='movieId', how='left')
+
+
+new_movies
+
+# Calculate RMSE
+rmse = np.sqrt(((new_movies['rating_y'] - new_movies['Predicted Rating']) ** 2).mean())
+
+# Calculate MAE
+mae = np.abs(new_movies['rating_y'] - new_movies['Predicted Rating']).mean()
+
+# Print the results
+print(f"RMSE: {rmse}")
+print(f"MAE: {mae}")
